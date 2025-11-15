@@ -102,6 +102,15 @@ python assistant_jardinier.py
 - [ ] Base données SQLite
 - [ ] Déploiement web
 
+
+### 03-API-IA
+**Simulateur & Chatbots IA** 🤖
+- Simulateur API IA (moteur)
+- Chatbot console interactif
+- Assistant jardinier spécialisé
+- Architecture modulaire + héritage POO
+- *Session 16*
+
 ## 📅 Session 16 - Novembre 2025
 
 Premier contact avec les APIs IA !

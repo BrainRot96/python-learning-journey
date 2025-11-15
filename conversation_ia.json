@@ -1,0 +1,34 @@
+[
+    {
+        "role": "user",
+        "content": "Bonjour !"
+    },
+    {
+        "role": "assistant",
+        "content": "Bonjour ! Comment puis-je vous aider ?"
+    },
+    {
+        "role": "user",
+        "content": "J'apprends Python"
+    },
+    {
+        "role": "assistant",
+        "content": "J'adore Python ! Parfait pour débuter."
+    },
+    {
+        "role": "user",
+        "content": "Je suis jardinier"
+    },
+    {
+        "role": "assistant",
+        "content": "Ah, le jardinage ! Conseils pour vos plantes ?"
+    },
+    {
+        "role": "user",
+        "content": "Merci !"
+    },
+    {
+        "role": "assistant",
+        "content": "Avec plaisir !"
+    }
+]
