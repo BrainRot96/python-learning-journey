@@ -1,0 +1,153 @@
+import anthropic
+import os
+import json
+from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.getenv("ANTHROPIC_API_KEY")
+
+if not API_KEY:
+    print("Erreur : Cle API non trouvee")
+    exit()
+
+client = anthropic.Anthropic(api_key=API_KEY)
+conversation_history = []
+total_input_tokens = 0
+total_output_tokens = 0
+
+PRIX_INPUT = 3.0
+PRIX_OUTPUT = 15.0
+
+MAX_HISTORY_PAIRS = 10  # Garde les 10 derniers echanges
+
+def afficher_aide():
+    """Affiche la liste des commandes disponibles"""
+    print("\n📋 COMMANDES DISPONIBLES :")
+    print("   /help  - Afficher cette aide")
+    print("   /clear - Effacer l'historique de conversation")
+    print("   /cost  - Afficher le cout actuel")
+    print("   /save  - Sauvegarder la conversation maintenant")
+    print("   /limit - Voir/changer la limite d'historique")
+    print("   quit   - Quitter l'assistant\n")
+
+def afficher_cout():
+    """Affiche les statistiques et le cout actuel"""
+    cout_input = (total_input_tokens / 1_000_000) * PRIX_INPUT
+    cout_output = (total_output_tokens / 1_000_000) * PRIX_OUTPUT
+    cout_total = cout_input + cout_output
+    
+    print(f"\n💰 COUT ACTUEL :")
+    print(f"   Tokens entree : {total_input_tokens}")
+    print(f"   Tokens sortie : {total_output_tokens}")
+    print(f"   Total tokens : {total_input_tokens + total_output_tokens}")
+    print(f"   Cout estime : {cout_total:.6f} €\n")
+
+def sauvegarder_conversation():
+    """Sauvegarde la conversation dans un fichier JSON"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"conversation_{timestamp}.json"
+    
+    cout_total = ((total_input_tokens / 1_000_000) * PRIX_INPUT + 
+                  (total_output_tokens / 1_000_000) * PRIX_OUTPUT)
+    
+    conversation_data = {
+        "date": datetime.now().isoformat(),
+        "total_input_tokens": total_input_tokens,
+        "total_output_tokens": total_output_tokens,
+        "cout_total_euros": cout_total,
+        "messages": conversation_history
+    }
+    
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(conversation_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n💾 Conversation sauvegardee : {filename}\n")  # ✅ CORRIGÉ : indenté dans la fonction
+
+def effacer_historique():
+    """Efface l'historique de conversation"""
+    global conversation_history, total_input_tokens, total_output_tokens
+    conversation_history = []
+    total_input_tokens = 0
+    total_output_tokens = 0
+    print("\n🗑️  Historique efface ! Nouvelle conversation demarree.\n")
+
+def limiter_historique():
+    """Limite l'historique aux derniers messages pour economiser des tokens"""
+    global conversation_history
+    
+    # Chaque paire = 1 message user + 1 message assistant = 2 messages
+    max_messages = MAX_HISTORY_PAIRS * 2
+    
+    if len(conversation_history) > max_messages:
+        messages_supprimes = len(conversation_history) - max_messages
+        conversation_history = conversation_history[-max_messages:]
+        print(f"⚠️  Historique reduit : {messages_supprimes} anciens messages supprimes pour economiser des tokens")
+
+def afficher_limite():
+    """Affiche la limite actuelle d'historique"""
+    print(f"\n📊 LIMITE D'HISTORIQUE :")
+    print(f"   Messages conserves : {MAX_HISTORY_PAIRS} paires (question/reponse)")
+    print(f"   Historique actuel : {len(conversation_history)//2} paires")
+    print(f"   Max messages : {MAX_HISTORY_PAIRS * 2}\n")
+
+print("=== Assistant IA Final - Tapez /help pour les commandes ===\n")
+afficher_aide()
+
+while True:
+    try:
+        user_input = input("Toi : ")
+        
+        # Gestion des commandes
+        if user_input.lower() == "quit":
+            afficher_cout()
+            sauvegarder_conversation()
+            print("Au revoir ! 👋")
+            break
+        
+        elif user_input.lower() == "/help":
+            afficher_aide()
+            continue
+        
+        elif user_input.lower() == "/clear":
+            effacer_historique()
+            continue
+        
+        elif user_input.lower() == "/cost":
+            afficher_cout()
+            continue
+        
+        elif user_input.lower() == "/save":
+            sauvegarder_conversation()
+            continue
+        
+        elif user_input.lower() == "/limit":
+            afficher_limite()
+            continue
+        
+        # Message normal
+        conversation_history.append({"role": "user", "content": user_input})
+        
+        # Limiter l'historique AVANT d'envoyer la requete
+        limiter_historique()
+        
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1024,
+            messages=conversation_history
+        )
+        
+        total_input_tokens += message.usage.input_tokens
+        total_output_tokens += message.usage.output_tokens
+        
+        assistant_response = message.content[0].text
+        conversation_history.append({"role": "assistant", "content": assistant_response})
+        
+        cout_msg = ((message.usage.input_tokens / 1_000_000) * PRIX_INPUT + 
+                    (message.usage.output_tokens / 1_000_000) * PRIX_OUTPUT)
+        
+        print(f"\nClaude : {assistant_response}")
+        print(f"💰 Tokens : {message.usage.input_tokens} in / {message.usage.output_tokens} out (~{cout_msg:.6f} €)\n")
+        
+    except Exception as e:
+        print(f"\nErreur : {e}\n")
