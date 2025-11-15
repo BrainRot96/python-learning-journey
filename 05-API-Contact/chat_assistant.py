@@ -1,7 +1,7 @@
 import anthropic
 
 # Ta clé API
-API_KEY = "***REMOVED***"
+API_KEY = "VOTRE_CLE_ICI"
 
 # Créer le client
 client = anthropic.Anthropic(api_key=API_KEY)
